@@ -42,7 +42,7 @@ int canGet(){
     /* 
     Return 1 if buffer has items to read, else 0
     */
-    int diff = (in - out) % BUFFER_SIZE; // space between in and out counter, while equals 1 or 8 (in at the end, out at beginning) than can't instert (while 0 queue is empty)
+    int diff = (in - out) % BUFFER_SIZE; // space between in and out counter, while equals 0 than can't get item
     if (( diff  == 0 )) {
         return 0;
     }
