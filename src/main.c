@@ -10,11 +10,15 @@ int in = 0;
 int out = 0;
 int count_even = 0;
 int count_odd = 0;
+int counter = 0;
 
-sem_t mutex_even;
-sem_t mutex_odd;
-sem_t global_mutex;
+sem_t mutex_prod_even;
+sem_t mutex_prod_odd;
+sem_t mutex_cons_even;
+sem_t mutex_cons_odd;
+sem_t mutex_global;
 
+/* -------- Buffer methods -------- */
 
 void put(int value) {
     buffer[in] = value;
@@ -48,7 +52,140 @@ int canGet(){
     }
     return 1;
 }
-    
+
+/* -------- A1 producer methods -------- */
+
+void putEven(){
+    sem_wait(&mutex_global);
+    if (!canPutEven()){
+        sem_post(&mutex_global);
+        sem_wait(&mutex_prod_even);
+    put(counter);
+    count_even++;
+    counter++;
+    if (canPutOdd()) {
+        sem_post(&mutex_prod_odd);
+    }
+    if (canPutEven) {
+        sem_post(&mutex_prod_even);
+    }
+    if (canGetEven()) {
+        sem_post(&mutex_cons_even);
+    }
+    if (canGetOdd()) {
+        sem_post(&mutex_cons_odd);
+    }
+    sem_post(&mutex_global);
+    }
+}
+
+int canPutEven() {
+    if ((count_even < 10) && canPut()){
+        return 1;
+    }
+    return 0;
+}
+
+/* -------- A2 producer methods -------- */
+
+void putOdd(int odd){
+    sem_wait(&mutex_global);
+    if (!canPutOdd()){
+        sem_post(&mutex_global);
+        sem_wait(&mutex_prod_odd);
+    put(odd);
+    count_odd++;
+    counter++;
+    if (canPutOdd()) {
+        sem_post(&mutex_prod_odd);
+    }
+    if (canPutEven) {
+        sem_post(&mutex_prod_even);
+    }
+    if (canGetEven()) {
+        sem_post(&mutex_cons_even);
+    }
+    if (canGetOdd()) {
+        sem_post(&mutex_cons_odd);
+    }
+    sem_post(&mutex_global);
+    }
+}
+
+int canPutOdd() {
+    if ((count_odd < count_even) && canPut()){
+        return 1;
+    }
+    return 0;
+}
+
+/* -------- B1 consumer methods -------- */
+
+int getEven(){
+    sem_wait(&mutex_global);
+    if (!canGetEven()){
+        sem_post(&mutex_global);
+        sem_wait(&mutex_cons_even);
+    int item = get();
+    count_even--;
+    counter--;
+    printf("Even: %d\n", item);
+    if (canPutOdd()) {
+        sem_post(&mutex_prod_odd);
+    }
+    if (canPutEven) {
+        sem_post(&mutex_prod_even);
+    }
+    if (canGetEven()) {
+        sem_post(&mutex_cons_even);
+    }
+    if (canGetOdd()) {
+        sem_post(&mutex_cons_odd);
+    }
+    sem_post(&mutex_global);
+    }
+}
+
+int canGetEven() {
+    if (((counter > 3 ) && !(buffer[out]%2)) && canGet()){
+        return 1;
+    }
+    return 0;
+}
+
+/* -------- B2 consumer methods -------- */
+
+int getOdd(){
+    sem_wait(&mutex_global);
+    if (!canGetOdd()){
+        sem_post(&mutex_global);
+        sem_wait(&mutex_cons_odd);
+    int item = get();
+    count_odd--;
+    counter--;
+    printf("Odd: %d\n", item);
+    if (canPutOdd()) {
+        sem_post(&mutex_prod_odd);
+    }
+    if (canPutEven) {
+        sem_post(&mutex_prod_even);
+    }
+    if (canGetEven()) {
+        sem_post(&mutex_cons_even);
+    }
+    if (canGetOdd()) {
+        sem_post(&mutex_cons_odd);
+    }
+    sem_post(&mutex_global);
+    }
+}
+
+int canGetOdd() {
+    if (((counter > 7 ) && (buffer[out]%2)) && canGet()){
+        return 1;
+    }
+    return 0;
+}
 
 int main() {
     in = 19;
