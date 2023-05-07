@@ -18,6 +18,31 @@ sem_t mutex_cons_even;
 sem_t mutex_cons_odd;
 sem_t mutex_global;
 
+int waiting_prod_even = 0;
+int waiting_prod_odd = 0;
+int waiting_cons_even = 0;
+int waiting_cons_odd = 0;
+
+/* -------- Function prototypes -------- */
+
+void put(int value);
+int get();
+int canPut();
+int canGet();
+
+void putEven();
+int canPutEven();
+
+void putOdd(int odd);
+int canPutOdd();
+
+int getEven();
+int canGetEven();
+
+int getOdd();
+int canGetOdd();
+
+
 /* -------- Buffer methods -------- */
 
 void put(int value) {
@@ -27,6 +52,7 @@ void put(int value) {
 
 int get(){
     int item = buffer[out];
+    buffer[out] = 0;
     out = (out + 1) % BUFFER_SIZE;
     return item;
 }
@@ -55,29 +81,41 @@ int canGet(){
 
 /* -------- A1 producer methods -------- */
 
-void putEven(){
+void putEven(int even){
     sem_wait(&mutex_global);
     if (!canPutEven()){
+        printf("Can't put even -- waiting\n");
+        waiting_prod_even++;
         sem_post(&mutex_global);
         sem_wait(&mutex_prod_even);
-    put(counter);
+        printf("Put even passed wait\n");
+        waiting_prod_even--;
+    }
+    printf("Put even: %d\n", even);
+    put(even);
     count_even++;
     counter++;
-    if (canPutOdd()) {
+
+    printf("DEBUG INFO: | counter: %d | count_odd: %d | count_even: %d | in: %d | out: %d |\n",\
+    counter, count_odd, count_even, in, out);
+
+    printf("DEBUG INFO: queue: [%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d]\n",\
+    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17], buffer[18], buffer[19]);
+
+    if (canPutOdd() && (waiting_prod_odd > 0)) {
         sem_post(&mutex_prod_odd);
     }
-    if (canPutEven) {
-        sem_post(&mutex_prod_even);
-    }
-    if (canGetEven()) {
+    else if (canGetEven() && (waiting_cons_even > 0)) {
         sem_post(&mutex_cons_even);
     }
-    if (canGetOdd()) {
+    else if (canGetOdd() && (waiting_cons_odd > 0)) {
         sem_post(&mutex_cons_odd);
     }
-    sem_post(&mutex_global);
+    else{
+        sem_post(&mutex_global);
     }
 }
+
 
 int canPutEven() {
     if ((count_even < 10) && canPut()){
@@ -91,25 +129,37 @@ int canPutEven() {
 void putOdd(int odd){
     sem_wait(&mutex_global);
     if (!canPutOdd()){
+        printf("Can't put odd -- waiting\n");
+        waiting_prod_odd++;
         sem_post(&mutex_global);
         sem_wait(&mutex_prod_odd);
+        printf("Put odd passed wait\n");
+        waiting_prod_odd--;
+    }
+    printf("Put odd: %d\n", odd);
     put(odd);
     count_odd++;
     counter++;
-    if (canPutOdd()) {
-        sem_post(&mutex_prod_odd);
-    }
-    if (canPutEven) {
+
+    printf("DEBUG INFO: | counter: %d | count_odd: %d | count_even: %d | in: %d | out: %d |\n",\
+    counter, count_odd, count_even, in, out);
+
+    printf("DEBUG INFO: queue: [%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d]\n",\
+    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17], buffer[18], buffer[19]);
+
+    if (canPutEven() && (waiting_prod_even > 0)) {
         sem_post(&mutex_prod_even);
     }
-    if (canGetEven()) {
+    else if (canGetEven() && (waiting_cons_even > 0)) {
         sem_post(&mutex_cons_even);
     }
-    if (canGetOdd()) {
+    else if (canGetOdd() && (waiting_cons_odd > 0)) {
         sem_post(&mutex_cons_odd);
     }
-    sem_post(&mutex_global);
+    else{
+        sem_post(&mutex_global);
     }
+        
 }
 
 int canPutOdd() {
@@ -124,30 +174,40 @@ int canPutOdd() {
 int getEven(){
     sem_wait(&mutex_global);
     if (!canGetEven()){
+        printf("Can't get even -- waiting\n");
+        waiting_cons_even++;
         sem_post(&mutex_global);
         sem_wait(&mutex_cons_even);
+        printf("Get even passed wait\n");
+        waiting_cons_even--;
+    }
     int item = get();
+    printf("Get even: %d\n", item);
     count_even--;
     counter--;
-    printf("Even: %d\n", item);
-    if (canPutOdd()) {
+ 
+    printf("DEBUG INFO: | counter: %d | count_odd: %d | count_even: %d | in: %d | out: %d |\n",\
+    counter, count_odd, count_even, in, out);
+
+    printf("DEBUG INFO: queue: [%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d]\n",\
+    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17], buffer[18], buffer[19]);
+
+    if (canPutOdd() && (waiting_prod_odd > 0)) {
         sem_post(&mutex_prod_odd);
     }
-    if (canPutEven) {
+    else if (canPutEven() && (waiting_prod_even > 0)) {
         sem_post(&mutex_prod_even);
     }
-    if (canGetEven()) {
-        sem_post(&mutex_cons_even);
-    }
-    if (canGetOdd()) {
+    else if (canGetOdd() && (waiting_cons_odd > 0)) {
         sem_post(&mutex_cons_odd);
     }
-    sem_post(&mutex_global);
+    else{
+        sem_post(&mutex_global);
     }
 }
 
 int canGetEven() {
-    if (((counter > 3 ) && !(buffer[out]%2)) && canGet()){
+    if (((counter > 3 ) && (!(buffer[out]%2))) && canGet()){
         return 1;
     }
     return 0;
@@ -158,27 +218,38 @@ int canGetEven() {
 int getOdd(){
     sem_wait(&mutex_global);
     if (!canGetOdd()){
+        printf("Can't get odd -- waiting\n");
+        waiting_cons_odd++;
         sem_post(&mutex_global);
         sem_wait(&mutex_cons_odd);
+        printf("Get odd passed wait\n");
+        waiting_cons_odd--;
+    }
     int item = get();
+    printf("Get odd: %d\n", item);
     count_odd--;
     counter--;
-    printf("Odd: %d\n", item);
-    if (canPutOdd()) {
+ 
+    printf("DEBUG INFO: | counter: %d | count_odd: %d | count_even: %d | in: %d | out: %d |\n",\
+    counter, count_odd, count_even, in, out);
+
+    printf("DEBUG INFO: queue: [%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d]\n",\
+    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17], buffer[18], buffer[19]);
+
+    if (canPutOdd() && (waiting_prod_odd > 0)) {
         sem_post(&mutex_prod_odd);
     }
-    if (canPutEven) {
+    else if (canPutEven() && (waiting_prod_even > 0)) {
         sem_post(&mutex_prod_even);
     }
-    if (canGetEven()) {
+    else if (canGetEven() && (waiting_cons_even > 0)) {
         sem_post(&mutex_cons_even);
     }
-    if (canGetOdd()) {
-        sem_post(&mutex_cons_odd);
-    }
-    sem_post(&mutex_global);
+    else{
+        sem_post(&mutex_global);
     }
 }
+
 
 int canGetOdd() {
     if (((counter > 7 ) && (buffer[out]%2)) && canGet()){
@@ -187,20 +258,69 @@ int canGetOdd() {
     return 0;
 }
 
+/* -------- Threads -------- */
+
+void *producer_even(void *arg) {
+    int num = 0;
+    while (1) {
+        num++;
+        int even = rand() % 50;
+        if (!(even % 2)) {
+            putEven(even);
+        }
+        sleep(1);
+    }
+}
+
+void *producer_odd(void *arg) {
+    while (1) {
+        int odd = rand() % 50;
+        if ((odd % 2)) {
+            putOdd(odd);
+        }
+        sleep(1);
+    }
+}
+
+void *consumer_even(void *arg) {
+    while (1) {
+        getEven();
+        sleep(1);
+    }
+}
+
+void *consumer_odd(void *arg) {
+    while (1) {
+        getOdd();
+        sleep(1);
+    }
+}
+
+/* -------- Main -------- */
 int main() {
-    in = 19;
-    out = 0;
-    printf("%d\n", canPut());
-    in = 18;
-    out = 0;
-    printf("%d\n", canPut());
-    in = 3;
-    out = 2;
-    printf("%d\n", canPut());
-    in = 3;
-    out = 2;
-    printf("%d\n", canGet());
-    in = 3;
-    out = 3;
-    printf("%d\n", canGet());
+    sem_init(&mutex_prod_even, 0, 0);
+    sem_init(&mutex_prod_odd, 0, 0);
+    sem_init(&mutex_cons_even, 0, 0);
+    sem_init(&mutex_cons_odd, 0, 0);
+    sem_init(&mutex_global, 0, 1);
+
+    pthread_t prod_even;
+    pthread_t prod_odd;
+    pthread_t cons_even;
+    pthread_t cons_odd;
+
+    pthread_create(&prod_even, NULL, producer_even, NULL);
+    pthread_create(&prod_odd, NULL, producer_odd, NULL);
+    pthread_create(&cons_even, NULL, consumer_even, NULL);
+    pthread_create(&cons_odd, NULL, consumer_odd, NULL);
+
+    pthread_join(prod_even, NULL);
+    pthread_join(prod_odd, NULL);
+    pthread_join(cons_even, NULL);
+    pthread_join(cons_odd, NULL);
+
+    printf("Queue status: %d\n", counter);
+
+    sem_destroy(&mutex_prod_even);
+    return 0;
 }
