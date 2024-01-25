@@ -1,4 +1,4 @@
-## Task for SOI subject (Operating Systems)
+## Task for SOI 2023l curse (Operating Systems)
 
 ### Task description:
 
